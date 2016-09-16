@@ -13,7 +13,7 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 
 from sklearn import metrics
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import PolynomialFeatures, normalize
 from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge
 from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score
 from skimage import feature, color, exposure
@@ -315,12 +315,12 @@ def segment(filename, model, seconds_between_frame_grabs=30):
         if prediction >= threshold:
             if not start_time:
                 start_time = '{}'.format(i)
-            if prediction <= threshold and start_time:
-                end_time = '{}'.format(i)
-                timecodes.append([start_time, end_time])
-                print('Found game:',[start_time, end_time])
-                start_time = 0
-                end_time = 0
+        if prediction <= threshold and start_time:
+            end_time = '{}'.format(i)
+            timecodes.append([start_time, end_time])
+            print('Found game:',[start_time, end_time])
+            start_time = 0
+            end_time = 0
 
     vid.close()
     return timecodes
