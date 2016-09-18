@@ -20,7 +20,8 @@
 /train_non-game-bak/*
 /video/*
 scramble.csv
-test_images_button/*
-test_images_non-button/*
-train_game-jitter/*
-train_non-game-jitter/*
+/test_images_button/*
+/test_images_non-button/*
+/train_game-jitter/*
+/train_non-game-jitter/*
+/histogram/*
