@@ -199,7 +199,7 @@ def train_scene_detection():
 
     print('Plotting learning curve')
     plot_learning_curve(model, 'learning curve', X_train, y_train)
-    plt.show()
+    # plt.show()
 
     # Generate pairs Plot
     # print('Plotting pairs plot')
