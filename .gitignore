@@ -25,3 +25,9 @@ scramble.csv
 /train_game-jitter/*
 /train_non-game-jitter/*
 /histogram/*
+/slides/*
+*.wav
+*.json
+/dejavu/
+/aggregated/*
+/histograms/full/*

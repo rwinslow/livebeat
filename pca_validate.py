@@ -22,6 +22,9 @@ from skimage import color
 from scipy.signal import convolve2d as conv2
 from sklearn.learning_curve import learning_curve, validation_curve
 from sklearn import decomposition
+
+from sklearn.metrics import roc_curve, auc
+
 import seaborn as sns
 sns.set(style="ticks", color_codes=True)
 
@@ -207,6 +210,24 @@ def pca_check():
     g.map_diag(plt.hist)
     g.map_offdiag(plt.scatter)
     g.savefig('/Users/Rich/Documents/Twitch/pca-result/pca-test.png')
+
+    model = LogisticRegression()
+    model = model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+    false_positive_rate, true_positive_rate, thresholds = roc_curve(y_test, predictions)
+    roc_auc = auc(false_positive_rate, true_positive_rate)
+
+    plt.title('Receiver Operating Characteristic')
+    plt.plot(false_positive_rate, true_positive_rate, 'b',
+    label='AUC = %0.2f'% roc_auc)
+    plt.legend(loc='lower right')
+    plt.plot([0,1],[0,1],'r--')
+    plt.xlim([-0.1,1.2])
+    plt.ylim([-0.1,1.2])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.show()
 
     return True
 

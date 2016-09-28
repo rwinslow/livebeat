@@ -176,20 +176,20 @@ def train_scene_detection():
     model = LogisticRegression()
     model.fit(X, y)
 
-    # # Train logistic model
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=0)
-    # model = LogisticRegression().fit(X_train, y_train)
-    #
-    # print(len(X_train))
-    #
-    # predicted = model.predict(X_test)
-    # probs = model.predict_proba(X_test)
-    #
-    # # Generate evaluation metrics
-    # print('Accuracy:', metrics.accuracy_score(y_test, predicted))
-    # print(metrics.roc_auc_score(y_test, probs[:, 1]))
-    # print('Confusion Matrix:', metrics.confusion_matrix(y_test, predicted))
-    # print('Classification Report:', metrics.classification_report(y_test, predicted))
+    # Train logistic model
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=0)
+    model = LogisticRegression().fit(X_train, y_train)
+
+    print(len(X_train))
+
+    predicted = model.predict(X_test)
+    probs = model.predict_proba(X_test)
+
+    # Generate evaluation metrics
+    print('Accuracy:', metrics.accuracy_score(y_test, predicted))
+    print(metrics.roc_auc_score(y_test, probs[:, 1]))
+    print('Confusion Matrix:', metrics.confusion_matrix(y_test, predicted))
+    print('Classification Report:', metrics.classification_report(y_test, predicted))
     #
     # # evaluate the model using 10-fold cross-validation
     # scores = cross_val_score(LogisticRegression(), X, y, scoring='accuracy', cv=10)
@@ -278,14 +278,14 @@ filename = '/Volumes/Passport/LiveBeat/video/dota2ti_v82878048_720p30.mp4'
 # filename = '/Volumes/Passport/LiveBeat/video/dota2ti_v83012529_720p30_nongame_2.mp4'
 
 model, pca = train_scene_detection()
-timecodes = segment(filename, model, pca)
+# timecodes = segment(filename, model, pca)
 print('Done. Now writing timecodes.')
 
 # Get video id
-video_id = re.findall('v\d+', filename)[0]
-
-timecode_file = './timecodes/timecodes_{}_s{}_e{}.csv'.format(video_id, start_pct, end_pct)
-with open(timecode_file, 'w') as f:
-    for v in timecodes:
-        f.write(v)
-        f.write('\n')
+# video_id = re.findall('v\d+', filename)[0]
+#
+# timecode_file = './timecodes/timecodes_{}_s{}_e{}.csv'.format(video_id, start_pct, end_pct)
+# with open(timecode_file, 'w') as f:
+#     for v in timecodes:
+#         f.write(v)
+#         f.write('\n')
