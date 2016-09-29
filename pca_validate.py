@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import PolynomialFeatures, normalize
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.cross_validation import train_test_split
+from sklearn.cross_validation import train_test_split, KFold
 from sklearn import metrics
 from sklearn.cross_validation import cross_val_score
 from scipy import ndimage as ndi
@@ -32,6 +32,7 @@ sns.set(style="ticks", color_codes=True)
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+
 def file_list(start_dir):
     """Generate file list in directory"""
     file_list = []
@@ -41,19 +42,25 @@ def file_list(start_dir):
                 file_list.append(f)
     return file_list
 
+
 def rgb2vec(img):
-    return [img[:,:,i].flatten().tolist() for i in range(0, 3)][0]
+    return [img[:, :, i].flatten().tolist() for i in range(0, 3)][0]
+
 
 def gray2vec(img):
     return img.flatten().tolist()
 
+
 def img2val(img):
-    return [sum(img[:,:,i].flatten().tolist()) for i in range(0, 3)]
+    return [sum(img[:, :, i].flatten().tolist()) for i in range(0, 3)]
+
 
 def edge_detect_score(img):
-    score = [np.sum(img, axis=1) for img in [feature.canny(img[:,:,i]) for i in range(3)]]
+    score = [np.sum(img, axis=1)
+             for img in [feature.canny(img[:, :, i]) for i in range(3)]]
     score = [item for sublist in score for item in sublist]
     return score
+
 
 def edge_detect_gray_score(img):
     cols = list(np.sum(feature.canny(grayscale_image(img), sigma=1), axis=1))
@@ -61,22 +68,28 @@ def edge_detect_gray_score(img):
     # cols.extend(rows)
     return cols
 
+
 def corner_find_features(img):
-    return np.sum(feature.corner_fast(img[:,:,0], threshold=.05), axis=1)
+    return np.sum(feature.corner_fast(img[:, :, 0], threshold=.05), axis=1)
+
 
 def score_channel_cols(img):
-    score = [sum(np.sum(img[:,:,i], axis=1)) for i in range(3)]
+    score = [sum(np.sum(img[:, :, i], axis=1)) for i in range(3)]
     return score
+
 
 def downsample_image(img):
     return block_reduce(img, block_size=(2, 2, 1), func=np.mean)
 
+
 def grayscale_image(img):
     return color.rgb2gray(img)
+
 
 def scale_features(img):
     mean = np.mean(img)
     return []
+
 
 def hog_img(img):
     img = np.asarray(img)
@@ -84,10 +97,12 @@ def hog_img(img):
     hogged, hogged_img = feature.hog(hog_img, visualise=True)
     return hogged
 
+
 def img2score(img):
     score = []
     score = hog_img(img)
     return score
+
 
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
                         n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
@@ -177,8 +192,12 @@ def pca_check():
     # pca.fit(X)
     # X = pca.transform(X)
 
+    # Show number of features before applying PCA
+    print('No. features from HOG', len(X[0]))
+
     # Train logistic model
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=1)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.4, random_state=1)
 
     pca_train = decomposition.PCA(n_components=4)
     pca_train.fit(X_train)
@@ -188,46 +207,83 @@ def pca_check():
     pca_test.fit(X_test)
     X_test = pca_test.transform(X_test)
 
-    # Generate pairs Plot
-    print('Plotting train pairs plot')
-    X_train = pd.DataFrame(X_train)
-    X_train['label'] = pd.DataFrame(
-            ['Game' if v == 1 else 'Non Game' for v in y_train]
-    )
-    X_train.columns=['PC1', 'PC2', 'PC3', 'PC4', 'label']
-    g = sns.pairplot(X_train, hue='label')
-    g.map_diag(plt.hist)
-    g.map_offdiag(plt.scatter)
-    g.savefig('/Users/Rich/Documents/Twitch/pca-result/pca-train.png')
+    pca_full = decomposition.PCA(n_components=4)
+    pca_full.fit(X)
+    X_reduced = pca_full.transform(X)
 
-    print('Plotting test pairs plot')
-    X_test = pd.DataFrame(X_test)
-    X_test['label'] = pd.DataFrame(
-            ['Game' if v == 1 else 'Non Game' for v in y_test]
-    )
-    X_test.columns=['PC1', 'PC2', 'PC3', 'PC4', 'label']
-    g = sns.pairplot(X_test, hue='label')
-    g.map_diag(plt.hist)
-    g.map_offdiag(plt.scatter)
-    g.savefig('/Users/Rich/Documents/Twitch/pca-result/pca-test.png')
+    # Evaluate the model using 10-fold cross-validation
+    scores = cross_val_score(LogisticRegression(), X,
+                             y, scoring='accuracy', cv=10)
+    print('10-fold Cross-Validation:', scores.mean())
 
-    model = LogisticRegression()
-    model = model.fit(X_train, y_train)
-    predictions = model.predict(X_test)
+    n = len(X_reduced)
+    kf_10 = KFold(n, n_folds=10, shuffle=True, random_state=2)
+    regr = LogisticRegression()
+    mse = []
 
-    false_positive_rate, true_positive_rate, thresholds = roc_curve(y_test, predictions)
-    roc_auc = auc(false_positive_rate, true_positive_rate)
+    score = -1 * cross_val_score(regr, np.ones((n, 1)), y,
+                                 cv=kf_10, scoring='mean_squared_error').mean()
+    mse.append(score)
 
-    plt.title('Receiver Operating Characteristic')
-    plt.plot(false_positive_rate, true_positive_rate, 'b',
-    label='AUC = %0.2f'% roc_auc)
-    plt.legend(loc='lower right')
-    plt.plot([0,1],[0,1],'r--')
-    plt.xlim([-0.1,1.2])
-    plt.ylim([-0.1,1.2])
-    plt.ylabel('True Positive Rate')
-    plt.xlabel('False Positive Rate')
-    plt.show()
+    for i in np.arange(1, 5):
+        score = -1 * cross_val_score(regr, X_reduced[:, :i], y,
+                                     cv=kf_10,
+                                     scoring='mean_squared_error').mean()
+        mse.append(score)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+    ax1.plot(mse, '-v')
+    ax2.plot([1, 2, 3, 4], mse[1:5], '-v')
+    ax2.set_title('Intercept excluded from plot')
+
+    for ax in fig.axes:
+        ax.set_xlabel('Number of principal components in regression')
+        ax.set_ylabel('MSE')
+        ax.set_xlim((-0.2, 4.2))
+
+    # plt.show()
+
+    # # Generate pairs Plot
+    # print('Plotting train pairs plot')
+    # X_train = pd.DataFrame(X_train)
+    # X_train['label'] = pd.DataFrame(
+    #         ['Game' if v == 1 else 'Non Game' for v in y_train]
+    # )
+    # X_train.columns=['PC1', 'PC2', 'PC3', 'PC4', 'label']
+    # g = sns.pairplot(X_train, hue='label')
+    # g.map_diag(plt.hist)
+    # g.map_offdiag(plt.scatter)
+    # g.savefig('/Users/Rich/Documents/Twitch/pca-result/pca-train.png')
+    #
+    # print('Plotting test pairs plot')
+    # X_test = pd.DataFrame(X_test)
+    # X_test['label'] = pd.DataFrame(
+    #         ['Game' if v == 1 else 'Non Game' for v in y_test]
+    # )
+    # X_test.columns=['PC1', 'PC2', 'PC3', 'PC4', 'label']
+    # g = sns.pairplot(X_test, hue='label')
+    # g.map_diag(plt.hist)
+    # g.map_offdiag(plt.scatter)
+    # g.savefig('/Users/Rich/Documents/Twitch/pca-result/pca-test.png')
+
+    # # Plot ROC Curve
+    # model = LogisticRegression()
+    # model = model.fit(X_train, y_train)
+    # predictions = model.predict_proba(X_test)[:,1]
+    #
+    # false_positive_rate, true_positive_rate, thresholds = roc_curve(y_test, predictions)
+    # roc_auc = auc(false_positive_rate, true_positive_rate)
+    #
+    # plt.title('Receiver Operating Characteristic')
+    # plt.plot(false_positive_rate, true_positive_rate, 'b',
+    #     label='AUC = {}'.format(roc_auc))
+    # plt.legend(loc='lower right')
+    # plt.plot([0,1],[0,1],'r--')
+    # plt.xlim([-0.1,1.2])
+    # plt.ylim([-0.1,1.2])
+    # plt.ylabel('True Positive Rate')
+    # plt.xlabel('False Positive Rate')
+    # plt.show()
 
     return True
 
